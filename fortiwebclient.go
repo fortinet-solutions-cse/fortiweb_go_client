@@ -47,7 +47,6 @@ func (f *FortiWebClient) GetStatus() string {
 	body, _ := ioutil.ReadAll(response.Body)
 
 	return string(body[:])
-
 }
 
 // CreateVirtualServer creates a virtual server object in FortiWeb
@@ -64,6 +63,85 @@ func (f *FortiWebClient) CreateVirtualServer(jsonBody string) error {
 	return nil
 }
 
+// CreateServerPool creates a virtual server pool object in FortiWeb
+// Simplifies POST operation to external user
+// Use this json:
+//{
+//	"name": "K8S_Server_Pool2",
+//	"poolCount": 0,
+//	"dissingleServerOrServerBalance": "Single Server",
+//	"distype": "Reverse Proxy",
+//	"type": 1,
+//	"comments": "",
+//	"singleServerOrServerBalance": 1,
+//	"can_delete": true
+//}
+func (f *FortiWebClient) CreateServerPool(jsonBody string) error {
+
+	response, error := f.doPost("api/v1.0/ServerObjects/Server/ServerPool", jsonBody)
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
+
+// CreateHTTPContentRouting creates a virtual server pool object in FortiWeb
+// Simplifies POST operation to external user
+// Use this json:
+//{
+//	"name": "K8S_Server_Pool2",
+//	"poolCount": 0,
+//	"dissingleServerOrServerBalance": "Single Server",
+//	"distype": "Reverse Proxy",
+//	"type": 1,
+//	"comments": "",
+//	"singleServerOrServerBalance": 1,
+//	"can_delete": true
+//}
+func (f *FortiWebClient) CreateHTTPContentRoutingPolicy(jsonBody string) error {
+
+	response, error := f.doPost("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy", jsonBody)
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
+
+// CreateHTTPContentRouting creates a criteria for matching http content in a policy
+// Simplifies POST operation to external user
+// Use this json:
+// {
+// 	"id": "1",
+// 	"_id": "1",
+// 	"seqId": 1,
+// 	"realId": "1",
+// 	"matchObject": 2,
+// 	"matchExpression": "huy",
+// 	"urlCondition": 3,
+// 	"concatenate": 2
+// }
+//}
+func (f *FortiWebClient) CreateHTTPContentRouting(HTTPContentRoutingPolicy string, jsonBody string) error {
+
+	url := strings.Join([]string{"api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/",
+		HTTPContentRoutingPolicy,
+		"/HTTPContentRoutingPolicyNewHTTPContentRouting"},
+		"")
+	response, error := f.doPost(url, jsonBody)
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
 func (f *FortiWebClient) doPost(path string, jsonBody string) (*http.Response, error) {
 
 	client := &http.Client{}
