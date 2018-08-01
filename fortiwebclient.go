@@ -54,7 +54,7 @@ func (f *FortiWebClient) GetStatus() string {
 // Simplifies POST operation to external user
 func (f *FortiWebClient) CreateVirtualServer(
 	name, ipv4Address, ipv6Address, interfaceName string,
-	useInterfaceIP, enable, canDelete bool) error {
+	useInterfaceIP, enable bool) error {
 
 	body := map[string]interface{}{
 		"name":           name,
@@ -63,7 +63,7 @@ func (f *FortiWebClient) CreateVirtualServer(
 		"interface":      interfaceName,
 		"useInterfaceIP": useInterfaceIP,
 		"enable":         enable,
-		"can_delete":     canDelete,
+		"can_delete":     true,
 	}
 
 	jsonByte, err := json.Marshal(body)
@@ -83,22 +83,47 @@ func (f *FortiWebClient) CreateVirtualServer(
 	return nil
 }
 
+// SingleOrMultiserverPool is used to define the pool as single server or balanced servers
+type SingleOrMultiserverPool string
+type ServerPoolType string
+
+const (
+	// SingleServer is used when there is single server in the pool
+	SingleServer  SingleOrMultiserverPool = "Single Server"
+	ServerBalance SingleOrMultiserverPool = "Server Balance"
+)
+
+const (
+	ReverseProxy          ServerPoolType = "Reverse Proxy"
+	OfflineProtection     ServerPoolType = "Offline Protection"
+	TrueTransparentProxy  ServerPoolType = "True Transparent Proxy"
+	TransparentInspection ServerPoolType = "TransparentInspection"
+	WCCP                  ServerPoolType = "WCCP"
+)
+
 // CreateServerPool creates a virtual server pool object in FortiWeb
 // Simplifies POST operation to external user
-// Use this json:
-//{
-//	"name": "K8S_Server_Pool2",
-//	"poolCount": 0,
-//	"dissingleServerOrServerBalance": "Single Server",
-//	"distype": "Reverse Proxy",
-//	"type": 1,
-//	"comments": "",
-//	"singleServerOrServerBalance": 1,
-//	"can_delete": true
-//}
-func (f *FortiWebClient) CreateServerPool(jsonBody string) error {
+func (f *FortiWebClient) CreateServerPool(name string,
+	singleOrMultiple SingleOrMultiserverPool,
+	poolType ServerPoolType,
+	comments string) error {
 
-	response, error := f.doPost("api/v1.0/ServerObjects/Server/ServerPool", jsonBody)
+	body := map[string]interface{}{
+		"name": name,
+		"dissingleServerOrServerBalance": singleOrMultiple,
+		"distype":                        poolType,
+		"comments":                       comments,
+		"can_delete":                     true,
+	}
+
+	jsonByte, err := json.Marshal(body)
+
+	if err != nil {
+		fmt.Printf("Error in json data: %s\n", err)
+		return err
+	}
+
+	response, error := f.doPost("api/v1.0/ServerObjects/Server/ServerPool", string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
