@@ -3,6 +3,7 @@ package fortiwebclient
 import (
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -51,9 +52,28 @@ func (f *FortiWebClient) GetStatus() string {
 
 // CreateVirtualServer creates a virtual server object in FortiWeb
 // Simplifies POST operation to external user
-func (f *FortiWebClient) CreateVirtualServer(jsonBody string) error {
+func (f *FortiWebClient) CreateVirtualServer(
+	name, ipv4Address, ipv6Address, interfaceName string,
+	useInterfaceIP, enable, canDelete bool) error {
 
-	response, error := f.doPost("api/v1.0/ServerObjects/Server/VirtualServer", jsonBody)
+	body := map[string]interface{}{
+		"name":           name,
+		"ipv4Address":    ipv4Address,
+		"ipv6Address":    ipv6Address,
+		"interface":      interfaceName,
+		"useInterfaceIP": useInterfaceIP,
+		"enable":         enable,
+		"can_delete":     canDelete,
+	}
+
+	jsonByte, err := json.Marshal(body)
+
+	if err != nil {
+		fmt.Printf("Error in json data: %s\n", err)
+		return err
+	}
+
+	response, error := f.doPost("api/v1.0/ServerObjects/Server/VirtualServer", string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
