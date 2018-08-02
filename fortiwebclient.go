@@ -85,11 +85,14 @@ func (f *FortiWebClient) CreateVirtualServer(
 
 // SingleOrMultiserverPool is used to define the pool as single server or balanced servers
 type SingleOrMultiserverPool string
+
+// ServerPoolType defines the operation mode of the pool
 type ServerPoolType string
 
 const (
 	// SingleServer is used when there is single server in the pool
-	SingleServer  SingleOrMultiserverPool = "Single Server"
+	SingleServer SingleOrMultiserverPool = "Single Server"
+	// ServerBalance is used there is a cluster of servers
 	ServerBalance SingleOrMultiserverPool = "Server Balance"
 )
 
@@ -145,6 +148,7 @@ func (f *FortiWebClient) CreateHTTPContentRoutingPolicy(name, serverPool, matchS
 	}
 
 	jsonByte, err := json.Marshal(body)
+
 	if err != nil {
 		fmt.Printf("Error in json data: %s\n", err)
 		return err
@@ -160,27 +164,57 @@ func (f *FortiWebClient) CreateHTTPContentRoutingPolicy(name, serverPool, matchS
 	return nil
 }
 
-// CreateHTTPContentRouting creates a criteria for matching http content in a policy
+type matchObject int
+
+const (
+	_                                    = iota
+	httpHost                 matchObject = iota
+	httpURL                  matchObject = iota
+	urlParameter             matchObject = iota
+	httpReferer              matchObject = iota
+	httpCookie               matchObject = iota
+	httpHeader               matchObject = iota
+	sourceIP                 matchObject = iota
+	x509CertificateSubject   matchObject = iota
+	x509CertificateExtension matchObject = iota
+	httpsSNI                 matchObject = iota
+)
+
+type concatenateOperator int
+
+const (
+	// AND is used to concatenate conditions in HTTP Content Routing
+	AND concatenateOperator = 2
+	// OR is used to concatenate conditions in HTTP Content Routing
+	OR concatenateOperator = 3
+)
+
+// CreateHTTPContentRoutingUsingHost creates a criteria for matching http content in a policy
 // Simplifies POST operation to external user
-// Use this json:
-// {
-// 	"id": "1",
-// 	"_id": "1",
-// 	"seqId": 1,
-// 	"realId": "1",
-// 	"matchObject": 2,
-// 	"matchExpression": "huy",
-// 	"urlCondition": 3,
-// 	"concatenate": 2
-// }
-//}
-func (f *FortiWebClient) CreateHTTPContentRouting(HTTPContentRoutingPolicy string, jsonBody string) error {
+func (f *FortiWebClient) CreateHTTPContentRoutingUsingHost(HTTPContentRoutingPolicy string,
+	matchExpression string,
+	hostCondition int,
+	concatenate concatenateOperator) error {
+
+	body := map[string]interface{}{
+		"matchObject":     httpHost,
+		"matchExpression": matchExpression,
+		"hostCondition":   hostCondition,
+		"concatenate":     concatenate,
+	}
+
+	jsonByte, err := json.Marshal(body)
+
+	if err != nil {
+		fmt.Printf("Error in json data: %s\n", err)
+		return err
+	}
 
 	url := strings.Join([]string{"api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/",
 		HTTPContentRoutingPolicy,
 		"/HTTPContentRoutingPolicyNewHTTPContentRouting"},
 		"")
-	response, error := f.doPost(url, jsonBody)
+	response, error := f.doPost(url, string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -189,6 +223,8 @@ func (f *FortiWebClient) CreateHTTPContentRouting(HTTPContentRoutingPolicy strin
 
 	return nil
 }
+
+//doPost is internal function to apply a generic POST operation to FortiWeb
 func (f *FortiWebClient) doPost(path string, jsonBody string) (*http.Response, error) {
 
 	client := &http.Client{}
