@@ -224,6 +224,41 @@ func (f *FortiWebClient) CreateHTTPContentRoutingUsingHost(HTTPContentRoutingPol
 	return nil
 }
 
+// CreateHTTPContentRoutingUsingURL creates a criteria for matching http content in a policy
+// Simplifies POST operation to external user
+func (f *FortiWebClient) CreateHTTPContentRoutingUsingURL(HTTPContentRoutingPolicy string,
+	matchExpression string,
+	urlCondition int,
+	concatenate concatenateOperator) error {
+
+	body := map[string]interface{}{
+		"matchObject":     httpURL,
+		"matchExpression": matchExpression,
+		"urlCondition":    urlCondition,
+		"concatenate":     concatenate,
+	}
+
+	jsonByte, err := json.Marshal(body)
+
+	if err != nil {
+		fmt.Printf("Error in json data: %s\n", err)
+		return err
+	}
+
+	url := strings.Join([]string{"api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/",
+		HTTPContentRoutingPolicy,
+		"/HTTPContentRoutingPolicyNewHTTPContentRouting"},
+		"")
+	response, error := f.doPost(url, string(jsonByte))
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
+
 //doPost is internal function to apply a generic POST operation to FortiWeb
 func (f *FortiWebClient) doPost(path string, jsonBody string) (*http.Response, error) {
 
