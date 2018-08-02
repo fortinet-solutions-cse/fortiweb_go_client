@@ -133,22 +133,24 @@ func (f *FortiWebClient) CreateServerPool(name string,
 	return nil
 }
 
-// CreateHTTPContentRouting creates a virtual server pool object in FortiWeb
+// CreateHTTPContentRoutingPolicy creates an HTTP Content Routing policy in FortiWeb
 // Simplifies POST operation to external user
-// Use this json:
-//{
-//	"name": "K8S_Server_Pool2",
-//	"poolCount": 0,
-//	"dissingleServerOrServerBalance": "Single Server",
-//	"distype": "Reverse Proxy",
-//	"type": 1,
-//	"comments": "",
-//	"singleServerOrServerBalance": 1,
-//	"can_delete": true
-//}
-func (f *FortiWebClient) CreateHTTPContentRoutingPolicy(jsonBody string) error {
+func (f *FortiWebClient) CreateHTTPContentRoutingPolicy(name, serverPool, matchSeq string) error {
 
-	response, error := f.doPost("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy", jsonBody)
+	body := map[string]interface{}{
+		"name":       name,
+		"serverPool": serverPool,
+		"matchSeq":   matchSeq,
+		"can_delete": true,
+	}
+
+	jsonByte, err := json.Marshal(body)
+	if err != nil {
+		fmt.Printf("Error in json data: %s\n", err)
+		return err
+	}
+
+	response, error := f.doPost("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy", string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
