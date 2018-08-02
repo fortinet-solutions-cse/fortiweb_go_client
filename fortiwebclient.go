@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -41,7 +40,7 @@ func (f *FortiWebClient) GetStatus() string {
 
 	if error != nil {
 		fmt.Printf("The HTTP request failed with error %s\n", err)
-		os.Exit(-1)
+		return strings.Join([]string{"Error: The HTTP request failed with error ", error.Error()}, "")
 	}
 
 	defer response.Body.Close()
@@ -97,11 +96,16 @@ const (
 )
 
 const (
-	ReverseProxy          ServerPoolType = "Reverse Proxy"
-	OfflineProtection     ServerPoolType = "Offline Protection"
-	TrueTransparentProxy  ServerPoolType = "True Transparent Proxy"
+	// ReverseProxy hides all servers behind FortiWeb
+	ReverseProxy ServerPoolType = "Reverse Proxy"
+	// OfflineProtection Puts FortiWeb in sniffer mode
+	OfflineProtection ServerPoolType = "Offline Protection"
+	// TrueTransparentProxy Puts FortiWeb as a transparent proxy
+	TrueTransparentProxy ServerPoolType = "True Transparent Proxy"
+	// TransparentInspection FortiWeb inspect traffic asynchronously. It does not modify traffic
 	TransparentInspection ServerPoolType = "TransparentInspection"
-	WCCP                  ServerPoolType = "WCCP"
+	// WCCP Web Cache Communication Protocol: Provides web caching with load balancing and fault tolerance
+	WCCP ServerPoolType = "WCCP"
 )
 
 // CreateServerPool creates a virtual server pool object in FortiWeb
@@ -250,6 +254,80 @@ func (f *FortiWebClient) CreateHTTPContentRoutingUsingURL(HTTPContentRoutingPoli
 		"/HTTPContentRoutingPolicyNewHTTPContentRouting"},
 		"")
 	response, error := f.doPost(url, string(jsonByte))
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
+
+type deploymentMode string
+
+const (
+	// HTTPContentRouting sets deployment mode to use http headers for routing
+	HTTPContentRouting deploymentMode = "http_content_routing"
+	// SingleServerOrServerPool set deployment mode to steer traffic to each node of the pool
+	SingleServerOrServerPool deploymentMode = "server_pool"
+)
+
+// CreateServerPolicy creates a criteria for matching http content in a policy
+// Simplifies POST operation to external user
+func (f *FortiWebClient) CreateServerPolicy(name,
+	virtualServer,
+	protectedHostnames,
+	httpService,
+	httpsService,
+	protectionProfile,
+	comments string,
+	deployment deploymentMode,
+	halfOpenThreshold int,
+	clientRealIP,
+	synCookie,
+	httpRedirectHTTPS,
+	monitorMode,
+	urlCaseSensitivity bool) error {
+
+	body := map[string]interface{}{
+		"name":               name,
+		"depInMode":          deployment,
+		"disdmode":           "HTTP Content Routing",
+		"virtualServer":      virtualServer,
+		"HTTPService":        httpService,
+		"HTTPSService":       httpsService,
+		"clientRealIP":       clientRealIP,
+		"halfopenThresh":     halfOpenThreshold,
+		"syncookie":          synCookie,
+		"hRedirectoHttps":    httpRedirectHTTPS,
+		"MonitorMode":        monitorMode,
+		"URLCaseSensitivity": urlCaseSensitivity,
+		"comments":           comments,
+		"enable":             true,
+		"status":             "run"}
+
+	if protectedHostnames != "" {
+		body["protectedHostnames"] = protectedHostnames
+	}
+
+	if protectionProfile != "" {
+		body["protectionProfile"] = protectionProfile
+	}
+
+	if deployment == HTTPContentRouting {
+		body["disdmode"] = "HTTP Content Routing"
+	} else {
+		body["disdmode"] = "Single Server/Server Pool"
+	}
+
+	jsonByte, err := json.Marshal(body)
+
+	if err != nil {
+		fmt.Printf("Error in json data: %s\n", err)
+		return err
+	}
+
+	response, error := f.doPost("api/v1.0/Policy/ServerPolicy/ServerPolicy/", string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
