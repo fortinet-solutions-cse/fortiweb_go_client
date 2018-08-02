@@ -83,44 +83,69 @@ func (f *FortiWebClient) CreateVirtualServer(
 }
 
 // SingleOrMultiserverPool is used to define the pool as single server or balanced servers
-type SingleOrMultiserverPool string
+type singleServerOrServerBalance int
 
 // ServerPoolType defines the operation mode of the pool
-type ServerPoolType string
+type serverPoolType int
+type loadBalancingAlgorithm int
 
 const (
+	_ = iota
 	// SingleServer is used when there is single server in the pool
-	SingleServer SingleOrMultiserverPool = "Single Server"
+	SingleServer singleServerOrServerBalance = iota
 	// ServerBalance is used there is a cluster of servers
-	ServerBalance SingleOrMultiserverPool = "Server Balance"
+	ServerBalance singleServerOrServerBalance = iota
 )
 
 const (
+	_ = iota
 	// ReverseProxy hides all servers behind FortiWeb
-	ReverseProxy ServerPoolType = "Reverse Proxy"
+	ReverseProxy serverPoolType = iota
 	// OfflineProtection Puts FortiWeb in sniffer mode
-	OfflineProtection ServerPoolType = "Offline Protection"
+	OfflineProtection serverPoolType = iota
 	// TrueTransparentProxy Puts FortiWeb as a transparent proxy
-	TrueTransparentProxy ServerPoolType = "True Transparent Proxy"
+	TrueTransparentProxy serverPoolType = iota
 	// TransparentInspection FortiWeb inspect traffic asynchronously. It does not modify traffic
-	TransparentInspection ServerPoolType = "TransparentInspection"
+	TransparentInspection serverPoolType = iota
 	// WCCP Web Cache Communication Protocol: Provides web caching with load balancing and fault tolerance
-	WCCP ServerPoolType = "WCCP"
+	WCCP serverPoolType = iota
+)
+
+const (
+	_ = iota
+	// RoundRobin ...
+	RoundRobin loadBalancingAlgorithm = iota
+	// WeightedRoundRobin ...
+	WeightedRoundRobin loadBalancingAlgorithm = iota
+	// LeastConnection ...
+	LeastConnection loadBalancingAlgorithm = iota
+	// URIHash ...
+	URIHash loadBalancingAlgorithm = iota
+	// FullURIHash ...
+	FullURIHash loadBalancingAlgorithm = iota
+	// HostHash ...
+	HostHash loadBalancingAlgorithm = iota
+	// HostDomainHash ...
+	HostDomainHash loadBalancingAlgorithm = iota
+	// SourceIPHash ...
+	SourceIPHash loadBalancingAlgorithm = iota
 )
 
 // CreateServerPool creates a virtual server pool object in FortiWeb
 // Simplifies POST operation to external user
 func (f *FortiWebClient) CreateServerPool(name string,
-	singleOrMultiple SingleOrMultiserverPool,
-	poolType ServerPoolType,
+	singleOrMultiple singleServerOrServerBalance,
+	poolType serverPoolType,
+	lbAlgorithm loadBalancingAlgorithm,
 	comments string) error {
 
 	body := map[string]interface{}{
 		"name": name,
-		"dissingleServerOrServerBalance": singleOrMultiple,
-		"distype":                        poolType,
-		"comments":                       comments,
-		"can_delete":                     true,
+		"singleServerOrServerBalance": singleOrMultiple,
+		"type":                   poolType,
+		"comments":               comments,
+		"loadBalancingAlgorithm": lbAlgorithm,
+		"can_delete":             true,
 	}
 
 	jsonByte, err := json.Marshal(body)
