@@ -82,10 +82,8 @@ func (f *FortiWebClient) CreateVirtualServer(
 	return nil
 }
 
-// SingleOrMultiserverPool is used to define the pool as single server or balanced servers
 type singleServerOrServerBalance int
 
-// ServerPoolType defines the operation mode of the pool
 type serverPoolType int
 type loadBalancingAlgorithm int
 
@@ -93,7 +91,7 @@ const (
 	_ = iota
 	// SingleServer is used when there is single server in the pool
 	SingleServer singleServerOrServerBalance = iota
-	// ServerBalance is used there is a cluster of servers
+	// ServerBalance is used when there is a cluster of servers
 	ServerBalance singleServerOrServerBalance = iota
 )
 
@@ -156,6 +154,42 @@ func (f *FortiWebClient) CreateServerPool(name string,
 	}
 
 	response, error := f.doPost("api/v1.0/ServerObjects/Server/ServerPool", string(jsonByte))
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
+
+// CreateServerPoolRule creates a virtual server pool object in FortiWeb
+// Simplifies POST operation to external user
+func (f *FortiWebClient) CreateServerPoolRule(serverPoolName string,
+	ip string,
+	port int,
+	status int,
+	connectionLimit int) error {
+
+	body := map[string]interface{}{
+		"ip":            ip,
+		"status":        status,
+		"port":          port,
+		"connectLimit":  connectionLimit,
+		"inHeritHCheck": true}
+
+	jsonByte, err := json.Marshal(body)
+
+	if err != nil {
+		fmt.Printf("Error in json data: %s\n", err)
+		return err
+	}
+
+	response, error := f.doPost(
+		strings.Join([]string{"api/v1.0/ServerObjects/Server/ServerPool/",
+			serverPoolName,
+			"/EditServerPoolRule"}, ""),
+		string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
