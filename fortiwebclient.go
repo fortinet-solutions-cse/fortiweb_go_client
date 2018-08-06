@@ -396,6 +396,52 @@ func (f *FortiWebClient) CreateServerPolicy(name,
 	return nil
 }
 
+// CreateServerPolicyContentRule creates a criteria for matching http content in a policy
+// Simplifies POST operation to external user
+func (f *FortiWebClient) CreateServerPolicyContentRule(serverPolicyName,
+	serverPolicyContentRuleName,
+	httpContentRoutingPolicy,
+	url,
+	profile string,
+	inheritWebProtectionProfile,
+	isDefault bool) error {
+
+	body := map[string]interface{}{
+		"default":                     isDefault,
+		"http_content_routing_policy": httpContentRoutingPolicy,
+		"inheritWebProtectionProfile": inheritWebProtectionProfile,
+		"name": serverPolicyContentRuleName}
+
+	if url != "" {
+		body["url"] = url
+	}
+
+	if profile != "" {
+		body["profile"] = profile
+	}
+
+	jsonByte, err := json.Marshal(body)
+
+	if err != nil {
+		fmt.Printf("Error in json data: %s\n", err)
+		return err
+	}
+
+	response, error := f.doPost(
+		strings.Join([]string{"api/v1.0/Policy/ServerPolicy/ServerPolicy/",
+			serverPolicyName,
+			"/EditContentRouting"},
+			""),
+		string(jsonByte))
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
+
 //doPost is internal function to apply a generic POST operation to FortiWeb
 func (f *FortiWebClient) doPost(path string, jsonBody string) (*http.Response, error) {
 
