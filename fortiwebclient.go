@@ -72,7 +72,7 @@ func (f *FortiWebClient) CreateVirtualServer(
 		return err
 	}
 
-	response, error := f.doPost("api/v1.0/ServerObjects/Server/VirtualServer", string(jsonByte))
+	response, error := f.DoPost("api/v1.0/ServerObjects/Server/VirtualServer", string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -153,7 +153,7 @@ func (f *FortiWebClient) CreateServerPool(name string,
 		return err
 	}
 
-	response, error := f.doPost("api/v1.0/ServerObjects/Server/ServerPool", string(jsonByte))
+	response, error := f.DoPost("api/v1.0/ServerObjects/Server/ServerPool", string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -185,7 +185,7 @@ func (f *FortiWebClient) CreateServerPoolRule(serverPoolName string,
 		return err
 	}
 
-	response, error := f.doPost(
+	response, error := f.DoPost(
 		strings.Join([]string{"api/v1.0/ServerObjects/Server/ServerPool/",
 			serverPoolName,
 			"/EditServerPoolRule"}, ""),
@@ -217,7 +217,7 @@ func (f *FortiWebClient) CreateHTTPContentRoutingPolicy(name, serverPool, matchS
 		return err
 	}
 
-	response, error := f.doPost("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy", string(jsonByte))
+	response, error := f.DoPost("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy", string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -277,7 +277,7 @@ func (f *FortiWebClient) CreateHTTPContentRoutingUsingHost(HTTPContentRoutingPol
 		HTTPContentRoutingPolicy,
 		"/HTTPContentRoutingPolicyNewHTTPContentRouting"},
 		"")
-	response, error := f.doPost(url, string(jsonByte))
+	response, error := f.DoPost(url, string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -312,7 +312,7 @@ func (f *FortiWebClient) CreateHTTPContentRoutingUsingURL(HTTPContentRoutingPoli
 		HTTPContentRoutingPolicy,
 		"/HTTPContentRoutingPolicyNewHTTPContentRouting"},
 		"")
-	response, error := f.doPost(url, string(jsonByte))
+	response, error := f.DoPost(url, string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -386,7 +386,7 @@ func (f *FortiWebClient) CreateServerPolicy(name,
 		return err
 	}
 
-	response, error := f.doPost("api/v1.0/Policy/ServerPolicy/ServerPolicy/", string(jsonByte))
+	response, error := f.DoPost("api/v1.0/Policy/ServerPolicy/ServerPolicy/", string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -427,7 +427,7 @@ func (f *FortiWebClient) CreateServerPolicyContentRule(serverPolicyName,
 		return err
 	}
 
-	response, error := f.doPost(
+	response, error := f.DoPost(
 		strings.Join([]string{"api/v1.0/Policy/ServerPolicy/ServerPolicy/",
 			serverPolicyName,
 			"/EditContentRouting"},
@@ -442,14 +442,48 @@ func (f *FortiWebClient) CreateServerPolicyContentRule(serverPolicyName,
 	return nil
 }
 
-//doPost is internal function to apply a generic POST operation to FortiWeb
-func (f *FortiWebClient) doPost(path string, jsonBody string) (*http.Response, error) {
+//DoGet simplifies GET REST operation towards FortiWeb
+func (f *FortiWebClient) DoGet(path string) (*http.Response, error) {
+
+	client := &http.Client{}
+
+	req, error := http.NewRequest("GET",
+		strings.Join([]string{f.URL, path}, ""),
+		strings.NewReader(""))
+	if error != nil {
+		fmt.Printf("The HTTP request failed with error %s\n", error)
+		return &http.Response{}, error
+	}
+	req.Header.Add("Authorization", encodeBase64(f.Username, f.Password))
+	return client.Do(req)
+
+}
+
+//DoPost simplifies POST REST operation towards FortiWeb
+func (f *FortiWebClient) DoPost(path string, jsonBody string) (*http.Response, error) {
 
 	client := &http.Client{}
 
 	req, error := http.NewRequest("POST",
 		strings.Join([]string{f.URL, path}, ""),
 		strings.NewReader(jsonBody))
+	if error != nil {
+		fmt.Printf("The HTTP request failed with error %s\n", error)
+		return &http.Response{}, error
+	}
+	req.Header.Add("Authorization", encodeBase64(f.Username, f.Password))
+	return client.Do(req)
+
+}
+
+//DoDelete simplifies DELETE REST operation towards FortiWeb
+func (f *FortiWebClient) DoDelete(path string) (*http.Response, error) {
+
+	client := &http.Client{}
+
+	req, error := http.NewRequest("DELETE",
+		strings.Join([]string{f.URL, path}, ""),
+		strings.NewReader(""))
 	if error != nil {
 		fmt.Printf("The HTTP request failed with error %s\n", error)
 		return &http.Response{}, error
