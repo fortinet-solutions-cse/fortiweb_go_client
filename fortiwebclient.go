@@ -29,6 +29,12 @@ func init() {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 }
 
+// SafeURL converts an string to another string suitable to be used as URL (removes slashes)
+func (f *FortiWebClient) SafeURL(url string) string {
+
+	return strings.Replace(url, "/", "_", -1)
+}
+
 // GetStatus returns status of FortiWeb device
 func (f *FortiWebClient) GetStatus() string {
 
@@ -167,7 +173,7 @@ func (f *FortiWebClient) CreateServerPool(name string,
 // Simplifies POST operation to external user
 func (f *FortiWebClient) CreateServerPoolRule(serverPoolName string,
 	ip string,
-	port int,
+	port int32,
 	status int,
 	connectionLimit int) error {
 
@@ -386,7 +392,7 @@ func (f *FortiWebClient) CreateServerPolicy(name,
 		return err
 	}
 
-	response, error := f.DoPost("api/v1.0/Policy/ServerPolicy/ServerPolicy/", string(jsonByte))
+	response, error := f.DoPost(f.SafeURL("api/v1.0/Policy/ServerPolicy/ServerPolicy/"), string(jsonByte))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -408,9 +414,9 @@ func (f *FortiWebClient) CreateServerPolicyContentRule(serverPolicyName,
 
 	body := map[string]interface{}{
 		"default":                     isDefault,
-		"http_content_routing_policy": httpContentRoutingPolicy,
+		"http_content_routing_policy": f.SafeURL(httpContentRoutingPolicy),
 		"inheritWebProtectionProfile": inheritWebProtectionProfile,
-		"name": serverPolicyContentRuleName}
+		"name": f.SafeURL(serverPolicyContentRuleName)}
 
 	if url != "" {
 		body["url"] = url
@@ -428,11 +434,39 @@ func (f *FortiWebClient) CreateServerPolicyContentRule(serverPolicyName,
 	}
 
 	response, error := f.DoPost(
-		strings.Join([]string{"api/v1.0/Policy/ServerPolicy/ServerPolicy/",
+		f.SafeURL(strings.Join([]string{"api/v1.0/Policy/ServerPolicy/ServerPolicy/",
 			serverPolicyName,
 			"/EditContentRouting"},
-			""),
+			"")),
 		string(jsonByte))
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
+
+// DeleteVirtualServer removes specified virtual server object in FortiWeb
+// Simplifies POST operation to external user
+func (f *FortiWebClient) DeleteVirtualServer(name string) error {
+
+	response, error := f.DoDelete(f.SafeURL("api/v1.0/ServerObjects/Server/VirtualServer/" + name))
+
+	if error != nil || response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
+		return error
+	}
+
+	return nil
+}
+
+// DeleteContentRoutingPolicy removes specified content routing policy and all its children in FortiWeb
+// Simplifies POST operation to external user
+func (f *FortiWebClient) DeleteContentRoutingPolicy(name string) error {
+
+	response, error := f.DoDelete(f.SafeURL("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/K8S_HTTP_Content_Routing_Policy/" + name))
 
 	if error != nil || response.StatusCode != 200 {
 		fmt.Printf("The HTTP request failed with error %s, %d, %s\n", error, response.StatusCode, response.Status)
@@ -465,7 +499,7 @@ func (f *FortiWebClient) DoPost(path string, jsonBody string) (*http.Response, e
 	client := &http.Client{}
 
 	req, error := http.NewRequest("POST",
-		strings.Join([]string{f.URL, path}, ""),
+		f.SafeURL(strings.Join([]string{f.URL, path}, "")),
 		strings.NewReader(jsonBody))
 	if error != nil {
 		fmt.Printf("The HTTP request failed with error %s\n", error)
@@ -482,7 +516,7 @@ func (f *FortiWebClient) DoDelete(path string) (*http.Response, error) {
 	client := &http.Client{}
 
 	req, error := http.NewRequest("DELETE",
-		strings.Join([]string{f.URL, path}, ""),
+		f.SafeURL(strings.Join([]string{f.URL, path}, "")),
 		strings.NewReader(""))
 	if error != nil {
 		fmt.Printf("The HTTP request failed with error %s\n", error)
