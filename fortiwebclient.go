@@ -493,7 +493,24 @@ func (f *FortiWebClient) DeleteVirtualServer(name string) error {
 // Simplifies POST operation to external user
 func (f *FortiWebClient) DeleteContentRoutingPolicy(name string) error {
 
-	response, error := f.DoDelete("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/K8S_HTTP_Content_Routing_Policy/" + f.SafeName(name))
+	response, error := f.DoDelete("api/v1.0/ServerObjects/Server/HTTPContentRoutingPolicy/" + f.SafeName(name))
+
+	if error != nil {
+		fmt.Printf("The HTTP request failed with error %s\n", error)
+		return error
+	}
+	if response != nil && response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with HTTP code: %d, %s\n", response.StatusCode, response.Status)
+	}
+
+	return nil
+}
+
+// DeleteServerPool removes specified server pool and all its server pool rules in FortiWeb
+// Simplifies POST operation to external user
+func (f *FortiWebClient) DeleteServerPool(name string) error {
+
+	response, error := f.DoDelete("api/v1.0/ServerObjects/Server/ServerPool/" + f.SafeName(name))
 
 	if error != nil {
 		fmt.Printf("The HTTP request failed with error %s\n", error)
