@@ -279,7 +279,7 @@ func (f *FortiWebClient) CreateHTTPContentRoutingUsingHost(HTTPContentRoutingPol
 
 	body := map[string]interface{}{
 		"matchObject":     httpHost,
-		"matchExpression": matchExpression,
+		"matchExpression": strings.TrimSpace(matchExpression),
 		"hostCondition":   hostCondition,
 		"concatenate":     concatenate,
 	}
@@ -317,7 +317,7 @@ func (f *FortiWebClient) CreateHTTPContentRoutingUsingURL(HTTPContentRoutingPoli
 
 	body := map[string]interface{}{
 		"matchObject":     httpURL,
-		"matchExpression": matchExpression,
+		"matchExpression": strings.TrimSpace(matchExpression),
 		"urlCondition":    urlCondition,
 		"concatenate":     concatenate,
 	}
@@ -472,23 +472,6 @@ func (f *FortiWebClient) CreateServerPolicyContentRule(serverPolicyName,
 	return nil
 }
 
-// DeleteVirtualServer removes specified virtual server object in FortiWeb
-// Simplifies POST operation to external user
-func (f *FortiWebClient) DeleteVirtualServer(name string) error {
-
-	response, error := f.DoDelete("api/v1.0/ServerObjects/Server/VirtualServer/" + f.SafeName(name))
-
-	if error != nil {
-		fmt.Printf("The HTTP request failed with error %s\n", error)
-		return error
-	}
-	if response != nil && response.StatusCode != 200 {
-		fmt.Printf("The HTTP request failed with HTTP code: %d, %s\n", response.StatusCode, response.Status)
-	}
-
-	return nil
-}
-
 // DeleteContentRoutingPolicy removes specified content routing policy and all its children in FortiWeb
 // Simplifies POST operation to external user
 func (f *FortiWebClient) DeleteContentRoutingPolicy(name string) error {
@@ -511,6 +494,40 @@ func (f *FortiWebClient) DeleteContentRoutingPolicy(name string) error {
 func (f *FortiWebClient) DeleteServerPool(name string) error {
 
 	response, error := f.DoDelete("api/v1.0/ServerObjects/Server/ServerPool/" + f.SafeName(name))
+
+	if error != nil {
+		fmt.Printf("The HTTP request failed with error %s\n", error)
+		return error
+	}
+	if response != nil && response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with HTTP code: %d, %s\n", response.StatusCode, response.Status)
+	}
+
+	return nil
+}
+
+// DeleteServerPolicy removes specified server policy and all its content rules in FortiWeb
+// Simplifies POST operation to external user
+func (f *FortiWebClient) DeleteServerPolicy(name string) error {
+
+	response, error := f.DoDelete("api/v1.0/Policy/ServerPolicy/ServerPolicy/" + f.SafeName(name))
+
+	if error != nil {
+		fmt.Printf("The HTTP request failed with error %s\n", error)
+		return error
+	}
+	if response != nil && response.StatusCode != 200 {
+		fmt.Printf("The HTTP request failed with HTTP code: %d, %s\n", response.StatusCode, response.Status)
+	}
+
+	return nil
+}
+
+// DeleteVirtualServer removes specified virtual server object in FortiWeb
+// Simplifies POST operation to external user
+func (f *FortiWebClient) DeleteVirtualServer(name string) error {
+
+	response, error := f.DoDelete("api/v1.0/ServerObjects/Server/VirtualServer/" + f.SafeName(name))
 
 	if error != nil {
 		fmt.Printf("The HTTP request failed with error %s\n", error)
